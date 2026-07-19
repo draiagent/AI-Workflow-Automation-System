@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 工作流自動化系統</title>
+<style>
+  :root{
+    --bg:#0f1420;
+    --panel:#182236;
+    --panel-2:#1f2c47;
+    --border:#2c3b5c;
+    --text:#f2f5fa;
+    --text-dim:#aab4c8;
+    --accent:#5eb4ff;
+    --accent-2:#7ee787;
+    --warn:#ffcc66;
+    --optional:#8892a6;
+    --shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+    font-size:20px;
+    line-height:1.6;
+    padding:32px 24px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  header{text-align:center;margin-bottom:40px;}
+  header h1{font-size:2.6rem;margin:0 0 12px;letter-spacing:.02em;}
+  header p{color:var(--text-dim);font-size:1.15rem;margin:0;}
+
+  /* 流程圖 */
+  .flow{
+    display:flex;flex-wrap:wrap;justify-content:center;align-items:stretch;
+    gap:10px;margin:36px 0 48px;
+  }
+  .flow-stage{
+    background:var(--panel);
+    border:2px solid var(--border);
+    border-radius:16px;
+    padding:18px 20px;
+    min-width:170px;
+    text-align:center;
+    cursor:pointer;
+    transition:transform .15s, border-color .15s, box-shadow .15s;
+  }
+  .flow-stage:hover, .flow-stage.active{
+    border-color:var(--accent);
+    transform:translateY(-4px);
+    box-shadow:var(--shadow);
+  }
+  .flow-stage .icon{font-size:2.2rem;display:block;margin-bottom:6px;}
+  .flow-stage .name{font-weight:700;font-size:1.05rem;}
+  .flow-arrow{
+    align-self:center;color:var(--text-dim);font-size:1.8rem;padding:0 4px;
+  }
+  .flow-support{
+    width:100%;text-align:center;color:var(--text-dim);font-size:1rem;margin-top:10px;
+  }
+
+  /* 群組區塊 */
+  .group{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:18px;
+    margin-bottom:22px;
+    overflow:hidden;
+    scroll-margin-top:20px;
+  }
+  .group-header{
+    display:flex;align-items:center;gap:16px;
+    padding:20px 24px;cursor:pointer;user-select:none;
+    background:var(--panel-2);
+  }
+  .group-header .icon{font-size:1.8rem;}
+  .group-header .title{font-size:1.35rem;font-weight:700;flex:1;}
+  .group-header .purpose{color:var(--text-dim);font-size:1rem;flex-basis:100%;margin-top:4px;}
+  .group-header .chev{font-size:1.4rem;transition:transform .2s;color:var(--text-dim);}
+  .group.open .chev{transform:rotate(90deg);}
+  .group-body{
+    max-height:0;overflow:hidden;transition:max-height .25s ease;
+  }
+  .group.open .group-body{max-height:2000px;}
+  .cmd-list{padding:8px 24px 24px;display:grid;gap:14px;}
+  .cmd{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 18px;
+    cursor:pointer;
+  }
+  .cmd-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .cmd-name{font-family:"Consolas",monospace;font-weight:700;font-size:1.15rem;color:var(--accent);}
+  .cmd-status{
+    margin-left:auto;font-size:.9rem;padding:4px 12px;border-radius:999px;font-weight:700;
+  }
+  .status-ok{background:rgba(126,231,135,.15);color:var(--accent-2);}
+  .status-pending{background:rgba(255,204,102,.15);color:var(--warn);}
+  .status-optional{background:rgba(136,146,166,.18);color:var(--optional);}
+  .cmd-summary{margin-top:6px;color:var(--text-dim);}
+  .cmd-detail{
+    max-height:0;overflow:hidden;transition:max-height .2s ease;
+    color:var(--text-dim);font-size:.98rem;
+  }
+  .cmd.open .cmd-detail{max-height:400px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);}
+  .cmd .cmd-detail b{color:var(--text);}
+
+  /* 圖例 */
+  .legend{
+    display:flex;flex-wrap:wrap;gap:18px;justify-content:center;
+    margin:8px 0 44px;color:var(--text-dim);font-size:1rem;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:8px;}
+  .dot{width:14px;height:14px;border-radius:50%;display:inline-block;}
+  .dot-ok{background:var(--accent-2);}
+  .dot-pending{background:var(--warn);}
+  .dot-optional{background:var(--optional);}
+
+  footer{text-align:center;color:var(--text-dim);margin-top:60px;font-size:.95rem;}
+
+  @media (max-width:640px){
+    body{font-size:17px;}
+    header h1{font-size:2rem;}
+    .flow-stage{min-width:130px;padding:14px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🧭 AI 工作流自動化系統</h1>
+    <p>把「想法 → 設計 → 實作 → 測試 → 部署 → 團隊對齊」串成一條連續的工作流，共 16 個全域 slash command</p>
+  </header>
+
+  <div class="legend">
+    <span><span class="dot dot-ok"></span>現在就能用</span>
+    <span><span class="dot dot-pending"></span>待授權／待連線</span>
+    <span><span class="dot dot-optional"></span>非必要備用</span>
+  </div>
+
+  <div class="flow" id="flow">
+    <div class="flow-stage" data-target="g1"><span class="icon">💡</span><span class="name">靈感 / Context Loop</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage" data-target="g2"><span class="icon">📐</span><span class="name">Design-to-Code</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage" data-target="g4"><span class="icon">🚀</span><span class="name">部署與營運</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage" data-target="g5"><span class="icon">🤝</span><span class="name">團隊對齊</span></div>
+    <div class="flow-support">
+      ⬆️ <span class="flow-stage" data-target="g3" style="display:inline-flex;vertical-align:middle;"><span class="icon">📊</span><span class="name">數據分析</span></span> 在任何一站都能被呼叫進來，支撐決策判斷
+    </div>
+  </div>
+
+  <div id="groups"></div>
+
+  <footer>
+    2026-07-19 建立 · 指令存放於 <code>~/.claude/commands/</code>，全域可用，不綁定單一專案
+  </footer>
+</div>
+
+<script>
+const DATA = [
+  {
+    id: "g1", icon: "💡", title: "知識系統｜靈感到文件的 Context Loop",
+    purpose: "動手寫程式前先建立 context，不是想到什麼就直接開始寫",
+    commands: [
+      { name: "/capture-idea", status: "ok", summary: "捕捉原始靈感，寫成獨立筆記",
+        detail: "存到 Obsidian <b>靈感/</b> 資料夾（新增的暫存區），frontmatter 標 status: inbox。" },
+      { name: "/open-issue", status: "ok", summary: "把靈感或描述轉成結構化 GitHub Issue",
+        detail: "背景/目標/範圍外/驗收標準四段式；建立前一定先給草稿讓你確認。建立後回填連結到來源筆記，形成雙向連結。" },
+      { name: "/write-spec", status: "ok", summary: "依 Issue 撰寫完整規格文件",
+        detail: "存到 Obsidian <b>創作庫/</b> ＋ repo 內 <b>docs/</b>。frontmatter 有 notion_synced 欄位，但 Notion 需付費版才能連，實際同步走 /sync-to-notion 的 Obsidian+GitHub 路徑。" }
+    ]
+  },
+  {
+    id: "g2", icon: "📐", title: "Design-to-Code｜Figma → Playwright → Supabase",
+    purpose: "用在新建的獨立前端專案，設計稿轉程式碼＋自動化測試提早抓 Bug",
+    commands: [
+      { name: "/figma-to-code", status: "pending", summary: "從 Figma 設計稿抓規格轉成程式碼",
+        detail: "需要 Figma 在 claude.ai connector 設定授權連接，目前待授權。取得色彩/間距/字體/版面/互動狀態後產生元件程式碼。" },
+      { name: "/e2e-test", status: "ok", summary: "把 Playwright 裝進專案當測試框架，寫真正的測試",
+        detail: "這個環境沒有 Playwright MCP，改用 npm 直接安裝 @playwright/test，用 Bash 執行 <code>npx playwright test</code>，不需要任何連接器。" },
+      { name: "/setup-supabase", status: "pending", summary: "搭後端骨架，不碰真實金鑰",
+        detail: "先建立 migration 草案、client 初始化、.env.example。待使用者提供真實 Supabase project ref 後才實際連線，密鑰一律由使用者自己輸入。" }
+    ]
+  },
+  {
+    id: "g3", icon: "📊", title: "數據分析｜Excel → PostgreSQL → Jupyter",
+    purpose: "讓 Claude 理解並推理數據，把原始資料在數分鐘內轉為洞察",
+    commands: [
+      { name: "/analyze-excel", status: "ok", summary: "快速掃過試算表，產生資料概覽報告",
+        detail: "用 xlsx skill 讀取，整理欄位/型別/缺值比例/資料品質問題，不需要任何連線。" },
+      { name: "/explore-db", status: "pending", summary: "探索 PostgreSQL 結構並產生 SQL",
+        detail: "用 Python（sqlalchemy + psycopg2）唯讀連線，連線字串一律從環境變數 <b>DATABASE_URL</b> 讀取，Claude 不經手密碼。待使用者設定好環境變數即可用。" },
+      { name: "/notebook-analysis", status: "ok", summary: "在 Jupyter 做深入推理與視覺化",
+        detail: "承接前兩者輸出，建立 notebooks/*.ipynb，用 jupyter nbconvert --execute 真的跑過，產出白話洞察摘要而非統計術語堆砌。" }
+    ]
+  },
+  {
+    id: "g4", icon: "🚀", title: "部署與營運｜Vercel（主線）＋ Docker / AWS（備用）",
+    purpose: "自動化部署、確保系統穩定運行，用自然語言降低終端機命令門檻",
+    commands: [
+      { name: "/deploy-vercel", status: "ok", summary: "主線：先出 Preview，Production 需明確同意",
+        detail: "Vercel + Supabase 是完整的代管平台方案。永遠先部署 Preview 並用瀏覽器檢查，只有你明確要求才會執行 <code>vercel --prod</code>。" },
+      { name: "/release-checklist", status: "ok", summary: "主線：發布前的自然語言終端機檢查",
+        detail: "檢查 git 狀態、測試是否通過、build 是否成功、環境變數是否設定，只做檢查不觸發部署，交由你決定要不要發布。" },
+      { name: "/dockerize", status: "optional", summary: "非必要備用：容器化",
+        detail: "Vercel/Supabase 已經足夠。只有需要長時間背景任務、自建資料庫、特殊合規要求時才需要。推送 image 到 registry 一律先確認。" },
+      { name: "/aws-plan", status: "optional", summary: "非必要備用：只產生 Terraform 計畫",
+        detail: "不會自動建立任何真實資源。<code>terraform apply</code>（會產生費用）一定要看過完整 plan 才會執行，AWS 帳密 Claude 不經手。" }
+    ]
+  },
+  {
+    id: "g5", icon: "🤝", title: "團隊對齊｜Obsidian → GitHub（Notion 備用）",
+    purpose: "圍繞產出的團隊協調與對齊，不只是同步 AI 產出的內容",
+    commands: [
+      { name: "/sync-to-notion", status: "ok", summary: "預設同步到 Obsidian＋GitHub 留言",
+        detail: "Notion 的 claude.ai connector 需要付費版才能連，這個帳號連不上。預設寫入 Obsidian 創作庫 ＋ GitHub Issue/PR 留言；Notion／Chrome 只在明確要求時才用。" },
+      { name: "/team-align", status: "ok", summary: "維護誰要 review／開放問題／決策紀錄",
+        detail: "決策紀錄用累加方式寫、不覆寫舊紀錄。預設寫入 GitHub（留言／assignee）＋ Obsidian 來源筆記。" }
+    ]
+  }
+];
+
+const statusLabel = { ok: "現在可用", pending: "待授權／待連線", optional: "非必要備用" };
+
+const groupsEl = document.getElementById("groups");
+DATA.forEach(group => {
+  const g = document.createElement("div");
+  g.className = "group";
+  g.id = group.id;
+  g.innerHTML = `
+    <div class="group-header">
+      <span class="icon">${group.icon}</span>
+      <span class="title">${group.title}</span>
+      <span class="chev">▶</span>
+      <span class="purpose">${group.purpose}</span>
+    </div>
+    <div class="group-body">
+      <div class="cmd-list">
+        ${group.commands.map(c => `
+          <div class="cmd">
+            <div class="cmd-top">
+              <span class="cmd-name">${c.name}</span>
+              <span class="cmd-status status-${c.status}">${statusLabel[c.status]}</span>
+            </div>
+            <div class="cmd-summary">${c.summary}</div>
+            <div class="cmd-detail">${c.detail}</div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+  groupsEl.appendChild(g);
+
+  g.querySelector(".group-header").addEventListener("click", () => {
+    g.classList.toggle("open");
+  });
+
+  g.querySelectorAll(".cmd").forEach(cmdEl => {
+    cmdEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cmdEl.classList.toggle("open");
+    });
+  });
+});
+
+document.querySelectorAll(".flow-stage").forEach(stage => {
+  stage.addEventListener("click", () => {
+    const target = document.getElementById(stage.dataset.target);
+    if (!target) return;
+    target.classList.add("open");
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.querySelectorAll(".flow-stage").forEach(s => s.classList.remove("active"));
+    stage.classList.add("active");
+  });
+});
+
+// 預設展開第一組
+document.getElementById("g1").classList.add("open");
+</script>
+</body>
+</html>
