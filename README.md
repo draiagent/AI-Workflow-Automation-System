@@ -51,3 +51,7 @@ git add index.html
 git commit -m "更新工作流內容"
 git push
 ```
+
+## 授權
+
+本專案採用 [CC BY-SA 4.0](LICENSE)（Attribution-ShareAlike 4.0 International）：可分享與改作，須標示來源，且衍生作品需以相同條款釋出。
